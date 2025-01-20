@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// This example doesn't work when running `go run stdin.go`, you are suposed to pipe someting to this like: `/bin/ls | go run stdin.go`
+
 package main
 
 import (
@@ -11,11 +13,15 @@ import (
 	"log"
 	"os"
 
-	"github.com/jroimartin/gocui"
+	"github.com/jesseduffield/gocui"
 )
 
 func main() {
-	g, err := gocui.NewGui(gocui.OutputNormal)
+	opt := gocui.NewGuiOpts{
+		OutputMode:      gocui.OutputNormal,
+		SupportOverlaps: true,
+	}
+	g, err := gocui.NewGui(opt)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -29,7 +35,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
+	if err := g.MainLoop(); err != nil && !gocui.IsQuit(err) {
 		log.Fatalln(err)
 	}
 }
@@ -37,8 +43,8 @@ func main() {
 func layout(g *gocui.Gui) error {
 	maxX, _ := g.Size()
 
-	if v, err := g.SetView("help", maxX-23, 0, maxX-1, 5); err != nil {
-		if err != gocui.ErrUnknownView {
+	if v, err := g.SetView("help", maxX-23, 0, maxX-1, 5, 0); err != nil {
+		if !gocui.IsUnknownView(err) {
 			return err
 		}
 		fmt.Fprintln(v, "KEYBINDINGS")
@@ -47,18 +53,19 @@ func layout(g *gocui.Gui) error {
 		fmt.Fprintln(v, "^C: Exit")
 	}
 
-	if v, err := g.SetView("stdin", 0, 0, 80, 35); err != nil {
-		if err != gocui.ErrUnknownView {
-			return err
-		}
-		if _, err := g.SetCurrentView("stdin"); err != nil {
-			return err
-		}
-		dumper := hex.Dumper(v)
-		if _, err := io.Copy(dumper, os.Stdin); err != nil {
+	if v, err := g.SetView("stdin", 0, 0, 80, 35, 0); err != nil {
+		if !gocui.IsUnknownView(err) {
 			return err
 		}
 		v.Wrap = true
+
+		if _, err := io.Copy(hex.Dumper(v), os.Stdin); err != nil {
+			return err
+		}
+
+		if _, err := g.SetCurrentView("stdin"); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -101,9 +108,10 @@ func scrollView(v *gocui.View, dy int) error {
 	if v != nil {
 		v.Autoscroll = false
 		ox, oy := v.Origin()
-		if err := v.SetOrigin(ox, oy+dy); err != nil {
-			return err
-		}
+		v.SetOrigin(ox, oy+dy)
+		// if err := v.SetOrigin(ox, oy+dy); err != nil {
+		// 	return err
+		// }
 	}
 	return nil
 }

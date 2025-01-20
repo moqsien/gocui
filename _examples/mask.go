@@ -8,11 +8,15 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/jroimartin/gocui"
+	"github.com/jesseduffield/gocui"
 )
 
 func main() {
-	g, err := gocui.NewGui(gocui.OutputNormal)
+	opt := gocui.NewGuiOpts{
+		OutputMode:      gocui.OutputNormal,
+		SupportOverlaps: true,
+	}
+	g, err := gocui.NewGui(opt)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -26,7 +30,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
+	if err := g.MainLoop(); err != nil && !gocui.IsQuit(err) {
 		log.Fatalln(err)
 	}
 }
@@ -34,8 +38,8 @@ func main() {
 func layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
 
-	if v, err := g.SetView("help", maxX-23, 0, maxX-1, 3); err != nil {
-		if err != gocui.ErrUnknownView {
+	if v, err := g.SetView("help", maxX-23, 0, maxX-1, 3, 0); err != nil {
+		if !gocui.IsUnknownView(err) {
 			return err
 		}
 		v.Title = "Keybindings"
@@ -43,8 +47,8 @@ func layout(g *gocui.Gui) error {
 		fmt.Fprintln(v, "^c: Exit")
 	}
 
-	if v, err := g.SetView("input", 0, 0, maxX-24, maxY-1); err != nil {
-		if err != gocui.ErrUnknownView {
+	if v, err := g.SetView("input", 0, 0, maxX-24, maxY-1, 0); err != nil {
+		if !gocui.IsUnknownView(err) {
 			return err
 		}
 		if _, err := g.SetCurrentView("input"); err != nil {

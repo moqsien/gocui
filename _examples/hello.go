@@ -8,11 +8,15 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/jroimartin/gocui"
+	"github.com/jesseduffield/gocui"
 )
 
 func main() {
-	g, err := gocui.NewGui(gocui.OutputNormal)
+	opt := gocui.NewGuiOpts{
+		OutputMode:      gocui.OutputNormal,
+		SupportOverlaps: true,
+	}
+	g, err := gocui.NewGui(opt)
 	if err != nil {
 		log.Panicln(err)
 	}
@@ -24,19 +28,25 @@ func main() {
 		log.Panicln(err)
 	}
 
-	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
+	if err := g.MainLoop(); err != nil && !gocui.IsQuit(err) {
 		log.Panicln(err)
 	}
 }
 
 func layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
-	if v, err := g.SetView("hello", maxX/2-7, maxY/2, maxX/2+7, maxY/2+2); err != nil {
-		if err != gocui.ErrUnknownView {
+	if v, err := g.SetView("hello", maxX/2-7, maxY/2, maxX/2+7, maxY/2+2, 0); err != nil {
+		if !gocui.IsUnknownView(err) {
 			return err
 		}
+
+		if _, err := g.SetCurrentView("hello"); err != nil {
+			return err
+		}
+
 		fmt.Fprintln(v, "Hello world!")
 	}
+
 	return nil
 }
 

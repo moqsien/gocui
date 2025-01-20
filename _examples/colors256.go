@@ -8,11 +8,14 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/jroimartin/gocui"
+	"github.com/jesseduffield/gocui"
 )
 
 func main() {
-	g, err := gocui.NewGui(gocui.Output256)
+	g, err := gocui.NewGui(gocui.NewGuiOpts{
+		OutputMode:      gocui.Output256,
+		SupportOverlaps: true,
+	})
 
 	if err != nil {
 		log.Panicln(err)
@@ -25,15 +28,15 @@ func main() {
 		log.Panicln(err)
 	}
 
-	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
+	if err := g.MainLoop(); err != nil && !gocui.IsQuit(err) {
 		log.Panicln(err)
 	}
 }
 
 func layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
-	if v, err := g.SetView("colors", -1, -1, maxX, maxY); err != nil {
-		if err != gocui.ErrUnknownView {
+	if v, err := g.SetView("colors", -1, -1, maxX, maxY, 0); err != nil {
+		if !gocui.IsUnknownView(err) {
 			return err
 		}
 
@@ -64,6 +67,9 @@ func layout(g *gocui.Gui) error {
 
 				ctr++
 			}
+		}
+		if _, err := g.SetCurrentView("colors"); err != nil {
+			return err
 		}
 	}
 	return nil
